@@ -1,0 +1,240 @@
+html<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lemonade Stand Tycoon</title>
+    <style>
+        :root {
+            --bg-color: #f7f9fa;
+            --card-bg: #ffffff;
+            --primary: #fbc02d;
+            --primary-dark: #f57f17;
+            --text: #37474f;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .game-container {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+        h1 { text-align: center; color: var(--primary-dark); margin-top: 0; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            background: #fffde7;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .weather-card {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #cfd8dc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+        input:focus { border-color: var(--primary-dark); outline: none; }
+        button {
+            width: 100%;
+            background: var(--primary);
+            color: #000;
+            border: none;
+            padding: 14px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: var(--primary-dark); color: #fff; }
+        .report-log {
+            background: #f1f8e9;
+            border-left: 4px solid #7cb342;
+            padding: 12px;
+            margin-top: 20px;
+            border-radius: 0 8px 8px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <h1>🍋 Lemonade Stand</h1>
+    
+    <div class="stats-grid">
+        <div>Day: <span id="day-val">1</span>/7</div>
+        <div>Cash: $<span id="cash-val">20.00</span></div>
+        <div>Profit: $<span id="profit-val">0.00</span></div>
+    </div>
+
+    <div class="weather-card">
+        ☀️ <strong>Forecast:</strong> <span id="weather-val">Loading...</span>
+    </div>
+
+    <div id="game-controls">
+        <div class="input-group">
+            <label for="cups-input">Glasses to Make (Cost: $0.15 each):</label>
+            <input type="number" id="cups-input" min="0" value="10">
+        </div>
+        <div class="input-group">
+            <label for="signs-input">Advertising Signs (Cost: $0.25 each):</label>
+            <input type="number" id="signs-input" min="0" value="2">
+        </div>
+        <div class="input-group">
+            <label for="price-input">Price per Glass (in cents):</label>
+            <input type="number" id="price-input" min="0" value="25">
+        </div>
+        <button id="start-day-btn" onclick="playDay()">Start Business Day</button>
+    </div>
+
+    <div id="report" class="report-log"></div>
+</div>
+
+<script>
+    // Game State
+    let cash = 20.00;
+    let day = 1;
+    const totalDays = 7;
+    const cupCost = 0.15;
+    const signCost = 0.25;
+    
+    const weatherTypes = [
+        { type: "Sunny & Hot", demandMod: 1.4, perfectPrice: 40 },
+        { type: "Clear & Pleasant", demandMod: 1.0, perfectPrice: 25 },
+        { type: "Cloudy & Overcast", demandMod: 0.6, perfectPrice: 15 },
+        { type: "Rainy & Stormy", demandMod: 0.1, perfectPrice: 10 }
+    ];
+    let currentWeather = weatherTypes[1];
+
+    function updateUI() {
+        document.getElementById("day-val").innerText = day;
+        document.getElementById("cash-val").innerText = cash.toFixed(2);
+        document.getElementById("weather-val").innerText = currentWeather.type;
+    }
+
+    function generateWeather() {
+        const rand = Math.random();
+        if (rand < 0.3) currentWeather = weatherTypes[0];      // Hot
+        else if (rand < 0.6) currentWeather = weatherTypes[1]; // Pleasant
+        else if (rand < 0.85) currentWeather = weatherTypes[2];// Cloudy
+        else currentWeather = weatherTypes[3];                 // Rainy
+        updateUI();
+    }
+
+    function playDay() {
+        // Read Inputs
+        const cupsMade = parseInt(document.getElementById("cups-input").value) || 0;
+        const signsCount = parseInt(document.getElementById("signs-input").value) || 0;
+        const pricePerCupCents = parseInt(document.getElementById("price-input").value) || 0;
+        const pricePerCupDollars = pricePerCupCents / 100;
+
+        // Calculate Expenses
+        const productionCost = cupsMade * cupCost;
+        const advertisingCost = signsCount * signCost;
+        const totalExpenses = productionCost + advertisingCost;
+
+        // Validation
+        if (totalExpenses > cash) {
+            alert("❌ You don't have enough cash for this setup! Reduce your inventory or signs.");
+            return;
+        }
+
+        // Calculate Customer Demand
+        // Base demand is driven by advertising, modified by weather conditions
+        let baseDemand = 5 + (signsCount * 4); 
+        let weatherDemand = baseDemand * currentWeather.demandMod;
+
+        // Price elasticity calculation (higher prices reduce demand)
+        let priceRatio = pricePerCupCents / currentWeather.perfectPrice;
+        let finalDemand = Math.max(0, weatherDemand * (2 - priceRatio));
+        
+        // Random variance representing minor market shifts
+        finalDemand = Math.round(finalDemand * (0.8 + Math.random() * 0.4));
+
+        // Final Sales Figure
+        const cupsSold = Math.min(cupsMade, Math.max(0, finalDemand));
+        const totalRevenue = cupsSold * pricePerCupDollars;
+        const dailyProfit = totalRevenue - totalExpenses;
+
+        // Apply Financials to State
+        cash += dailyProfit;
+
+        // Reveal the Daily Statement
+        const reportDiv = document.getElementById("report");
+        reportDiv.style.display = "block";
+        reportDiv.innerHTML = `
+            <h3>📅 Day ${day} Financial Results:</h3>
+            <p>Made ${cupsMade} cups, sold <strong>${cupsSold} cups</strong>.</p>
+            <p>Expenses: $${totalExpenses.toFixed(2)} | Revenue: $${totalRevenue.toFixed(2)}</p>
+            <p>Net Profit: <strong style="color: ${dailyProfit >= 0 ? 'green' : 'red'}">$${dailyProfit.toFixed(2)}</strong></p>
+        `;
+
+        document.getElementById("profit-val").innerText = dailyProfit.toFixed(2);
+
+        // Advance Game Progression
+        if (cash < 0.15) {
+            alert("💸 Game Over! You went bankrupt and don't have enough money to buy supplies.");
+            resetGame();
+            return;
+        }
+
+        if (day >= totalDays) {
+            alert(`🎉 Game Completed! Your final net worth is $${cash.toFixed(2)}.`);
+            resetGame();
+            return;
+        }
+
+        day++;
+        generateWeather();
+    }
+
+    function resetGame() {
+        cash = 20.00;
+        day = 1;
+        document.getElementById("profit-val").innerText = "0.00";
+        document.getElementById("report").style.display = "none";
+        generateWeather();
+    }
+
+    // Initialize Game on Window Load
+    window.onload = function() {
+        generateWeather();
+    };
+</script>
+
+</body>
+</html>
